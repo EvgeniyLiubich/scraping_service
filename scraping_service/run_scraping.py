@@ -1,3 +1,4 @@
+import asyncio
 import codecs
 import os, sys
 
@@ -22,6 +23,8 @@ parsers = (
     (jobs_tut, 'jobs_tut')
 )
 
+jobs, errors = [], []
+
 
 def get_settings():
     """Настройки по умолчанию"""
@@ -44,22 +47,37 @@ def get_urls(_settings):
     return urls
 
 
+async def main(value):
+    func, url, city, language = value
+    job, err = await loop.run_in_executor(None, func, url, city, language)
+    errors.extend(err)
+    jobs.extend(job)
+
+
 settings = get_settings()
 url_list = get_urls(settings)
 
 # city = City.objects.filter(slug='minsk').first()
 # language = Language.objects.filter(slug='python').first()
+import time
 
-jobs, errors = [], []
-for data in url_list:
+start = time.time()
+loop = asyncio.get_event_loop()
+tmp_tasks = [(func, data['url_data'][key], data['city'], data['language'])
+             for data in url_list for func, key in parsers]
+tasks = asyncio.wait([loop.create_task(main(f)) for f in tmp_tasks])
+# for data in url_list:
+#
+#     for func, key in parsers:
+#         url = data['url_data'][key]
+#         j, e = func(url, city=data['city'], language=data['language'])
+#         jobs += j
+#         errors += e
+#     # print(jobs)
 
-    for func, key in parsers:
-        url = data['url_data'][key]
-        j, e = func(url, city=data['city'], language=data['language'])
-        jobs += j
-        errors += e
-    # print(jobs)
-
+loop.run_until_complete(tasks)
+loop.close()
+print(time.time() - start)
 for job in jobs:
     # l = Language(name='Python')
     # l.save()
@@ -71,6 +89,7 @@ for job in jobs:
         print('Ошибка')
 if errors:
     er = Error(data=errors).save()
+print(time.time() - start)
 # h = codecs.open('work.json', 'w', 'utf-8')
 # h.write(str(jobs))
 # h.close()
