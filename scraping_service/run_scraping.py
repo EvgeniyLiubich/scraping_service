@@ -102,7 +102,7 @@ if errors:
         err.data.update({'errors': errors})
         err.save()
     else:
-        er = Error(data=f'errors: {errors}').save()
+        er = Error(data=f'errors:{errors}').save()
 print(time.time() - start)
 # h = codecs.open('work.json', 'w', 'utf-8')
 # h.write(str(jobs))
